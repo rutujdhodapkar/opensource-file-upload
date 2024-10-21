@@ -3,125 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub File Upload</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 10px;
-        }
-        h1 {
-            text-align: center;
-        }
-        #fileList {
-            margin-top: 20px;
-        }
-        .file-item {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-        #passcodeInput {
-            margin-bottom: 20px;
-        }
-        #message {
-            color: red;
-            margin-top: 10px;
-        }
-        .timestamp {
-            color: #888;
-            font-size: 12px;
-        }
-    </style>
+    <title>File Upload Server</title>
 </head>
 <body>
+    <h1>File Upload Server</h1>
+    <button id="serverButton">Activate Server</button>
+    <button id="clientButton">Access Client</button>
 
-    <h1>File Upload to GitHub</h1>
-    <p>Please enter the passcode to upload files:</p>
+    <div id="serverControls" style="display:none;">
+        <h2>Server Controls</h2>
+        <input type="password" id="password" placeholder="Enter passcode" />
+        <button id="startServer">Start Server</button>
+        <button id="stopServer">Stop Server</button>
+        <h3>Upload File</h3>
+        <input type="file" id="fileUpload" />
+        <button id="uploadFile">Upload</button>
+    </div>
 
-    <!-- Passcode section -->
-    <input type="text" id="passcodeInput" placeholder="Enter passcode">
-    <button onclick="checkPasscode()">Verify Passcode</button>
-
-    <div id="fileUploadSection" style="display: none;">
-        <h2>Upload Files</h2>
-        <input type="file" id="fileInput" multiple>
-        <button onclick="uploadFiles()">Upload Files</button>
-
-        <div id="message"></div>
-        <h3>Uploaded Files:</h3>
-        <ul id="fileList"></ul>
+    <div id="clientControls" style="display:none;">
+        <h2>Client Access</h2>
+        <button id="listFiles">List Files</button>
+        <div id="fileList"></div>
     </div>
 
     <script>
-        const correctPasscode = '15010'; // Set the passcode here
+        document.getElementById('serverButton').onclick = function() {
+            document.getElementById('serverControls').style.display = 'block';
+            document.getElementById('clientControls').style.display = 'none';
+        };
 
-        function checkPasscode() {
-            const userInput = document.getElementById('passcodeInput').value;
-            if (userInput === correctPasscode) {
-                document.getElementById('fileUploadSection').style.display = 'block';
-                document.getElementById('passcodeInput').style.display = 'none';
-                document.getElementById('message').innerText = '';
-                fetchUploadedFiles();
-            } else {
-                document.getElementById('message').innerText = 'Incorrect passcode!';
-            }
-        }
+        document.getElementById('clientButton').onclick = function() {
+            document.getElementById('clientControls').style.display = 'block';
+            document.getElementById('serverControls').style.display = 'none';
+        };
 
-        async function uploadFiles() {
-            const files = document.getElementById('fileInput').files;
-            if (files.length === 0) {
-                alert('Please select a file to upload.');
-                return;
-            }
+        document.getElementById('startServer').onclick = async function() {
+            const password = document.getElementById('password').value;
+            const response = await fetch('/activate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const data = await response.json();
+            alert(data.message);
+        };
 
+        document.getElementById('stopServer').onclick = async function() {
+            const response = await fetch('/deactivate', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            alert(data.message);
+        };
+
+        document.getElementById('uploadFile').onclick = async function() {
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
             const formData = new FormData();
-            for (const file of files) {
-                formData.append('file', file);
-            }
+            formData.append('file', file);
 
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            alert(data.message);
+        };
 
-                const result = await response.json();
-                if (response.ok) {
-                    fetchUploadedFiles(); // Refresh the file list
-                } else {
-                    document.getElementById('message').innerText = `Failed to upload file: ${files[0].name}`;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('message').innerText = `Failed to upload file: ${files[0].name}`;
-            }
-        }
-
-        async function fetchUploadedFiles() {
-            try {
-                const response = await fetch('/files'); // Fetching the list of uploaded files
-                const files = await response.json();
-
-                const fileList = document.getElementById('fileList');
-                fileList.innerHTML = '';
-
-                files.forEach(file => {
-                    const listItem = document.createElement('li');
-                    listItem.classList.add('file-item');
-                    listItem.innerHTML = `
-                        <strong>${file.name}</strong> <br>
-                        <span class="timestamp">Uploaded on: ${new Date(file.timestamp).toLocaleString()}</span>
-                    `;
-                    fileList.appendChild(listItem);
-                });
-            } catch (error) {
-                console.error('Error fetching files:', error);
-                document.getElementById('message').innerText = 'Failed to fetch the uploaded files.';
-            }
-        }
+        document.getElementById('listFiles').onclick = async function() {
+            const response = await fetch('/files');
+            const files = await response.json();
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = files.map(file => `<a href="/files/${file}">${file}</a>`).join('<br>');
+        };
     </script>
-
 </body>
 </html>
