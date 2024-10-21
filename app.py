@@ -40,8 +40,13 @@ def upload_file():
     if file.filename == '':
         return jsonify({"message": "No selected file."}), 400
 
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-    return jsonify({"message": "File uploaded successfully."}), 200
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    
+    try:
+        file.save(file_path)
+        return jsonify({"message": "File uploaded successfully.", "filename": file.filename}), 200
+    except Exception as e:
+        return jsonify({"message": f"Failed to upload file: {str(e)}"}), 500
 
 @app.route('/files/<filename>', methods=['GET'])
 def get_file(filename):
