@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>File Upload with Verification</title>
+  <title>File Upload with Timestamp</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,11 +11,16 @@
       margin: 50px auto;
       padding: 10px;
     }
+    h1 {
+      text-align: center;
+    }
     #fileList {
       margin-top: 20px;
     }
     .file-item {
       margin-bottom: 10px;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
     }
     #passcodeInput {
       margin-bottom: 20px;
@@ -24,13 +29,18 @@
       color: red;
       margin-top: 10px;
     }
+    .timestamp {
+      color: #888;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>File Upload</h1>
+  <h1>File Upload with Date & Time</h1>
   <p>Please enter the passcode to upload files:</p>
 
+  <!-- Passcode section -->
   <input type="text" id="passcodeInput" placeholder="Enter passcode">
   <button onclick="checkPasscode()">Verify Passcode</button>
 
@@ -53,6 +63,7 @@
         document.getElementById('fileUploadSection').style.display = 'block';
         document.getElementById('passcodeInput').style.display = 'none';
         document.getElementById('message').innerText = '';
+        fetchUploadedFiles();
       } else {
         document.getElementById('message').innerText = 'Incorrect passcode!';
       }
@@ -74,35 +85,48 @@
 
       const formData = new FormData();
       for (const file of files) {
-        formData.append('files', file);
+        formData.append('file', file);
       }
 
       try {
-        const response = await fetch('/.netlify/functions/upload', {
+        const response = await fetch('/upload', {
           method: 'POST',
           body: formData,
         });
 
         const result = await response.json();
         if (response.ok) {
-          displayUploadedFiles(result.files);
+          fetchUploadedFiles(); // Refresh the file list
         } else {
-          document.getElementById('message').innerText = result.error || 'Error uploading files.';
+          document.getElementById('message').innerText = `Failed to upload file: ${files[0].name}`;
         }
       } catch (error) {
         console.error('Error:', error);
-        document.getElementById('message').innerText = 'Failed to upload files.';
+        document.getElementById('message').innerText = `Failed to upload file: ${files[0].name}`;
       }
     }
 
-    function displayUploadedFiles(files) {
-      const fileList = document.getElementById('fileList');
-      fileList.innerHTML = '';
-      files.forEach(file => {
-        const listItem = document.createElement('li');
-        listItem.innerText = file.name;
-        fileList.appendChild(listItem);
-      });
+    async function fetchUploadedFiles() {
+      try {
+        const response = await fetch('/files'); // Fetching the list of uploaded files
+        const files = await response.json();
+
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+
+        files.forEach(file => {
+          const listItem = document.createElement('li');
+          listItem.classList.add('file-item');
+          listItem.innerHTML = `
+            <strong>${file.name}</strong> <br>
+            <span class="timestamp">Uploaded on: ${new Date(file.timestamp).toLocaleString()}</span>
+          `;
+          fileList.appendChild(listItem);
+        });
+      } catch (error) {
+        console.error('Error fetching files:', error);
+        document.getElementById('message').innerText = 'Failed to fetch the uploaded files.';
+      }
     }
   </script>
 
