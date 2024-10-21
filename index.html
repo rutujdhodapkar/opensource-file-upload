@@ -22,11 +22,15 @@
 
     <div id="clientControls" style="display:none;">
         <h2>Client Access</h2>
+        <input type="password" id="clientPassword" placeholder="Enter passcode to connect" />
+        <button id="connectClient">Connect</button>
         <button id="listFiles">List Files</button>
         <div id="fileList"></div>
     </div>
 
     <script>
+        let isConnected = false;
+
         document.getElementById('serverButton').onclick = function() {
             document.getElementById('serverControls').style.display = 'block';
             document.getElementById('clientControls').style.display = 'none';
@@ -57,6 +61,11 @@
         };
 
         document.getElementById('uploadFile').onclick = async function() {
+            if (!isConnected) {
+                alert("Please connect to the server first.");
+                return;
+            }
+
             const fileInput = document.getElementById('fileUpload');
             const file = fileInput.files[0];
             const formData = new FormData();
@@ -70,11 +79,26 @@
             alert(data.message);
         };
 
+        document.getElementById('connectClient').onclick = function() {
+            const clientPassword = document.getElementById('clientPassword').value;
+            if (clientPassword === '15010') {  // Check against the server password
+                isConnected = true;
+                alert("Connected to the server.");
+            } else {
+                alert("Invalid passcode. Please try again.");
+            }
+        };
+
         document.getElementById('listFiles').onclick = async function() {
+            if (!isConnected) {
+                alert("Please connect to the server first.");
+                return;
+            }
+
             const response = await fetch('/files');
             const files = await response.json();
             const fileList = document.getElementById('fileList');
-            fileList.innerHTML = files.map(file => `<a href="/files/${file}">${file}</a>`).join('<br>');
+            fileList.innerHTML = files.map(file => `<a href="/files/${file}" target="_blank">${file}</a>`).join('<br>');
         };
     </script>
 </body>
