@@ -1,17 +1,38 @@
+import requests
 from flask import Flask, request, jsonify
-from werkzeug.utils import secure_filename
-import os
 from datetime import datetime
+import base64
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = 'uploaded_files'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Set your GitHub repo details here
+GITHUB_TOKEN = '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'  # Replace with your GitHub token
+REPO_OWNER = 'rutujdhodapkar'
+REPO_NAME = 'opensource-file-upload'
+BRANCH = 'main'  # Branch where the files will be uploaded
+GITHUB_API_URL = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/'
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+uploaded_files = []  # Keep a list of uploaded files and timestamps
 
-uploaded_files = []  # In-memory storage for files and timestamps
+# Function to upload a file to GitHub
+def upload_to_github(file_content, file_name):
+    url = GITHUB_API_URL + file_name
+    headers = {
+        'Authorization': f'token {GITHUB_TOKEN}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    # Prepare file content in base64 encoding
+    encoded_content = base64.b64encode(file_content).decode('utf-8')
+
+    data = {
+        "message": f"Upload {file_name}",
+        "content": encoded_content,
+        "branch": BRANCH
+    }
+
+    response = requests.put(url, json=data, headers=headers)
+    return response.ok
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -19,19 +40,26 @@ def upload_file():
         return jsonify({'error': 'No file part in the request'}), 400
 
     file = request.files['file']
+
     if file.filename == '':
         return jsonify({'error': 'No file selected for uploading'}), 400
 
-    filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    # Read file content
+    file_content = file.read()
+    file_name = file.filename
 
-    # Store the filename and the upload timestamp
-    uploaded_files.append({
-        'name': filename,
-        'timestamp': datetime.now().isoformat()
-    })
+    # Upload to GitHub
+    success = upload_to_github(file_content, file_name)
 
-    return jsonify({'message': 'File uploaded successfully'}), 200
+    if success:
+        # Store the uploaded file details and timestamp
+        uploaded_files.append({
+            'name': file_name,
+            'timestamp': datetime.now().isoformat()
+        })
+        return jsonify({'message': 'File uploaded successfully'}), 200
+    else:
+        return jsonify({'error': 'Failed to upload to GitHub'}), 500
 
 @app.route('/files', methods=['GET'])
 def get_files():
