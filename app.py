@@ -43,6 +43,9 @@ def upload_file():
     if not is_server_active:
         return jsonify({"message": "Server is not active."}), 403
     
+    if not clients_connected:
+        return jsonify({"message": "No clients connected."}), 403
+
     if 'file' not in request.files:
         return jsonify({"message": "No file part."}), 400
 
@@ -63,6 +66,9 @@ def list_files():
     if not is_server_active:
         return jsonify({"message": "Server is not active."}), 403
     
+    if not clients_connected:
+        return jsonify({"message": "No clients connected."}), 403
+
     files = os.listdir(app.config['UPLOAD_FOLDER'])
     return jsonify(files), 200
 
