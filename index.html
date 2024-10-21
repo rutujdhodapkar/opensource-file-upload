@@ -67,7 +67,7 @@
         const controlsContainer = document.getElementById('controlsContainer'); // Reference to the controls container
         const repoOwner = 'rutujdhodapkar'; // Your GitHub username
         const repoName = 'opensource-file-upload'; // Your repository name
-        const token = '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'; // Your personal access token
+        const token = process.env.GITHUB_TOKEN; // Use environment variable for your token
         const passcode = '15010';
 
         // Disable right-click context menu
@@ -103,9 +103,6 @@
 
                 if (response.ok) {
                     const files = await response.json();
-                    const fileNames = files.map(file => file.name); // Get an array of file names
-
-                    // Update the UI if there are changes in the file list
                     renderFileList(files); // Update the UI
                 } else {
                     console.error('Error fetching files:', response.statusText);
@@ -157,7 +154,6 @@
 
                 // Check if the file is a coding language format
                 if (isCodeFile(fileExtension)) {
-                    // Convert to plain text (base64 to UTF-8)
                     fileContent = btoa(fileContent); // Convert to base64 to UTF-8
                 }
 
