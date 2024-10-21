@@ -1,75 +1,59 @@
+from flask import Flask, request, send_from_directory, jsonify
 import os
-import requests
-from flask import Flask, request, jsonify
-from datetime import datetime
-import base64
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SERVER_PASSWORD'] = '15010'
+is_server_active = False
 
-# Set your GitHub repo details here
-GITHUB_TOKEN = os.getenv('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')  # Use an environment variable for the GitHub token
-REPO_OWNER = 'rutujdhodapkar'
-REPO_NAME = 'opensource-file-upload'
-BRANCH = 'main'  # Branch where the files will be uploaded
-GITHUB_API_URL = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/'
+# Create upload folder if it doesn't exist
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
-uploaded_files = []  # Keep a list of uploaded files and timestamps
+@app.route('/activate', methods=['POST'])
+def activate_server():
+    global is_server_active
+    password = request.json.get('password')
+    if password == app.config['SERVER_PASSWORD']:
+        is_server_active = True
+        return jsonify({"message": "Server activated."}), 200
+    return jsonify({"message": "Invalid password."}), 403
 
-# Function to upload a file to GitHub
-def upload_to_github(file_content, file_name):
-    url = GITHUB_API_URL + file_name
-    headers = {
-        'Authorization': f'token {GITHUB_TOKEN}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-
-    # Prepare file content in base64 encoding
-    encoded_content = base64.b64encode(file_content).decode('utf-8')
-
-    data = {
-        "message": f"Upload {file_name}",
-        "content": encoded_content,
-        "branch": BRANCH
-    }
-
-    response = requests.put(url, json=data, headers=headers)
-
-    if response.status_code == 201:  # Created
-        return True
-    else:
-        print(f"Error: {response.status_code} - {response.text}")  # Log the error
-        return False
+@app.route('/deactivate', methods=['POST'])
+def deactivate_server():
+    global is_server_active
+    is_server_active = False
+    # Delete files when server is deactivated
+    for f in os.listdir(app.config['UPLOAD_FOLDER']):
+        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], f))
+    return jsonify({"message": "Server deactivated and files deleted."}), 200
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    if not is_server_active:
+        return jsonify({"message": "Server is not active."}), 403
+    
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
+        return jsonify({"message": "No file part."}), 400
 
     file = request.files['file']
-
     if file.filename == '':
-        return jsonify({'error': 'No file selected for uploading'}), 400
+        return jsonify({"message": "No selected file."}), 400
 
-    # Read file content
-    file_content = file.read()
-    file_name = file.filename
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+    return jsonify({"message": "File uploaded successfully."}), 200
 
-    # Upload to GitHub
-    success = upload_to_github(file_content, file_name)
-
-    if success:
-        # Store the uploaded file details and timestamp
-        uploaded_files.append({
-            'name': file_name,
-            'timestamp': datetime.now().isoformat()
-        })
-        return jsonify({'message': 'File uploaded successfully'}), 200
-    else:
-        return jsonify({'error': 'Failed to upload to GitHub'}), 500
+@app.route('/files/<filename>', methods=['GET'])
+def get_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/files', methods=['GET'])
-def get_files():
-    return jsonify(uploaded_files)
+def list_files():
+    if not is_server_active:
+        return jsonify({"message": "Server is not active."}), 403
+    
+    files = os.listdir(app.config['UPLOAD_FOLDER'])
+    return jsonify(files), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
