@@ -1,3 +1,4 @@
+import os
 import requests
 from flask import Flask, request, jsonify
 from datetime import datetime
@@ -6,7 +7,7 @@ import base64
 app = Flask(__name__)
 
 # Set your GitHub repo details here
-GITHUB_TOKEN = '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'  # Replace with your GitHub token
+GITHUB_TOKEN = os.getenv('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')  # Use an environment variable for the GitHub token
 REPO_OWNER = 'rutujdhodapkar'
 REPO_NAME = 'opensource-file-upload'
 BRANCH = 'main'  # Branch where the files will be uploaded
@@ -32,7 +33,12 @@ def upload_to_github(file_content, file_name):
     }
 
     response = requests.put(url, json=data, headers=headers)
-    return response.ok
+
+    if response.status_code == 201:  # Created
+        return True
+    else:
+        print(f"Error: {response.status_code} - {response.text}")  # Log the error
+        return False
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
