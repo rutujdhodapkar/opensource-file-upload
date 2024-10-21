@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload with Verification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 10px;
+    }
+    #fileList {
+      margin-top: 20px;
+    }
+    .file-item {
+      margin-bottom: 10px;
+    }
+    #passcodeInput {
+      margin-bottom: 20px;
+    }
+    #message {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>File Upload</h1>
+  <p>Please enter the passcode to upload files:</p>
+
+  <input type="text" id="passcodeInput" placeholder="Enter passcode">
+  <button onclick="checkPasscode()">Verify Passcode</button>
+
+  <div id="fileUploadSection" style="display: none;">
+    <h2>Upload Files (Max 100MB)</h2>
+    <input type="file" id="fileInput" multiple>
+    <button onclick="uploadFiles()">Upload Files</button>
+
+    <div id="message"></div>
+    <h3>Uploaded Files:</h3>
+    <ul id="fileList"></ul>
+  </div>
+
+  <script>
+    const correctPasscode = '15010'; // Set the passcode here
+
+    function checkPasscode() {
+      const userInput = document.getElementById('passcodeInput').value;
+      if (userInput === correctPasscode) {
+        document.getElementById('fileUploadSection').style.display = 'block';
+        document.getElementById('passcodeInput').style.display = 'none';
+        document.getElementById('message').innerText = '';
+      } else {
+        document.getElementById('message').innerText = 'Incorrect passcode!';
+      }
+    }
+
+    async function uploadFiles() {
+      const files = document.getElementById('fileInput').files;
+      if (files.length === 0) {
+        alert('Please select a file to upload.');
+        return;
+      }
+
+      for (const file of files) {
+        if (file.size > 100 * 1024 * 1024) {
+          alert('File size exceeds 100MB limit.');
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+
+      try {
+        const response = await fetch('/.netlify/functions/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          displayUploadedFiles(result.files);
+        } else {
+          document.getElementById('message').innerText = result.error || 'Error uploading files.';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('message').innerText = 'Failed to upload files.';
+      }
+    }
+
+    function displayUploadedFiles(files) {
+      const fileList = document.getElementById('fileList');
+      fileList.innerHTML = '';
+      files.forEach(file => {
+        const listItem = document.createElement('li');
+        listItem.innerText = file.name;
+        fileList.appendChild(listItem);
+      });
+    }
+  </script>
+
+</body>
+</html>
