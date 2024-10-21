@@ -24,6 +24,7 @@
         <h2>Client Access</h2>
         <input type="password" id="clientPassword" placeholder="Enter passcode to connect" />
         <button id="connectClient">Connect</button>
+        <h3>Uploaded Files</h3>
         <button id="listFiles">List Files</button>
         <div id="fileList"></div>
     </div>
@@ -60,6 +61,18 @@
             alert(data.message);
         };
 
+        document.getElementById('connectClient').onclick = async function() {
+            const clientPassword = document.getElementById('clientPassword').value;
+            const response = await fetch('/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_password: clientPassword })
+            });
+            const data = await response.json();
+            alert(data.message);
+            isConnected = data.message === "Connected to the server.";
+        };
+
         document.getElementById('uploadFile').onclick = async function() {
             if (!isConnected) {
                 alert("Please connect to the server first.");
@@ -68,6 +81,13 @@
 
             const fileInput = document.getElementById('fileUpload');
             const file = fileInput.files[0];
+
+            // Check if a file is selected
+            if (!file) {
+                alert("Please select a file to upload.");
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', file);
 
@@ -77,16 +97,6 @@
             });
             const data = await response.json();
             alert(data.message);
-        };
-
-        document.getElementById('connectClient').onclick = function() {
-            const clientPassword = document.getElementById('clientPassword').value;
-            if (clientPassword === '15010') {  // Check against the server password
-                isConnected = true;
-                alert("Connected to the server.");
-            } else {
-                alert("Invalid passcode. Please try again.");
-            }
         };
 
         document.getElementById('listFiles').onclick = async function() {
