@@ -3,113 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload Server</title>
+    <title>Upload Files to GitHub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            margin: 5px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        #refreshButton {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        #refreshSpinner {
+            display: none;
+            margin-left: 10px;
+        }
+        #controlsContainer {
+            display: none; /* Hide all controls initially */
+        }
+    </style>
 </head>
 <body>
-    <h1>File Upload Server</h1>
-    <button id="serverButton">Activate Server</button>
-    <button id="clientButton">Access Client</button>
-
-    <div id="serverControls" style="display:none;">
-        <h2>Server Controls</h2>
-        <input type="password" id="password" placeholder="Enter passcode" />
-        <button id="startServer">Start Server</button>
-        <button id="stopServer">Stop Server</button>
-        <h3>Upload File</h3>
-        <input type="file" id="fileUpload" />
-        <button id="uploadFile">Upload</button>
+    <h1>File Management System</h1>
+    <div id="roleSelection">
+        <button id="adminButton">Admin</button>
+        <button id="clientButton">Client</button>
     </div>
 
-    <div id="clientControls" style="display:none;">
-        <h2>Client Access</h2>
-        <input type="password" id="clientPassword" placeholder="Enter passcode to connect" />
-        <button id="connectClient">Connect</button>
-        <h3>Uploaded Files</h3>
-        <button id="listFiles">List Files</button>
-        <div id="fileList"></div>
+    <div id="controlsContainer"> <!-- Wrap everything in this container -->
+        <div id="adminControls" style="display: none;">
+            <h2>Select File to Upload</h2>
+            <input type="file" id="fileInput" accept=".txt, .csv, .pdf, .ppt, .pptx, .html, .css, .js, .json, .xml, .py, .java, .c, .cpp, .rb, .go, image/*, video/*" />
+            <button id="uploadButton">Upload</button>
+        </div>
+
+        <h2>Files in Repository:</h2>
+        <button id="refreshButton">Refresh Files</button>
+        <img id="refreshSpinner" src="spinner.gif" alt="Refreshing" style="display: none;">
+        <ul id="fileList"></ul>
     </div>
 
     <script>
-        let isConnected = false;
+        const adminButton = document.getElementById('adminButton');
+        const clientButton = document.getElementById('clientButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const refreshButton = document.getElementById('refreshButton');
+        const refreshSpinner = document.getElementById('refreshSpinner');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const adminControls = document.getElementById('adminControls');
+        const controlsContainer = document.getElementById('controlsContainer'); // Reference to the controls container
+        const repoOwner = 'rutujdhodapkar'; // Your GitHub username
+        const repoName = 'opensource-file-upload'; // Your repository name
+        const token = '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'; // Your personal access token
+        const passcode = '15010';
 
-        document.getElementById('serverButton').onclick = function() {
-            document.getElementById('serverControls').style.display = 'block';
-            document.getElementById('clientControls').style.display = 'none';
-        };
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
 
-        document.getElementById('clientButton').onclick = function() {
-            document.getElementById('clientControls').style.display = 'block';
-            document.getElementById('serverControls').style.display = 'none';
-        };
-
-        document.getElementById('startServer').onclick = async function() {
-            const password = document.getElementById('password').value;
-            const response = await fetch('/activate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-            });
-            const data = await response.json();
-            alert(data.message);
-        };
-
-        document.getElementById('stopServer').onclick = async function() {
-            const response = await fetch('/deactivate', {
-                method: 'POST'
-            });
-            const data = await response.json();
-            alert(data.message);
-        };
-
-        document.getElementById('connectClient').onclick = async function() {
-            const clientPassword = document.getElementById('clientPassword').value;
-            const response = await fetch('/connect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ client_password: clientPassword })
-            });
-            const data = await response.json();
-            alert(data.message);
-            isConnected = data.message === "Connected to the server.";
-        };
-
-        document.getElementById('uploadFile').onclick = async function() {
-            if (!isConnected) {
-                alert("Please connect to the server first.");
-                return;
+        // Event listeners for role selection
+        adminButton.addEventListener('click', () => {
+            const enteredPasscode = prompt('Enter Admin Passcode:');
+            if (enteredPasscode === passcode) {
+                adminControls.style.display = 'block'; // Show admin controls
+                controlsContainer.style.display = 'block'; // Show controls container
+                fetchFiles(); // Fetch the file list
+            } else {
+                alert('Incorrect passcode.');
             }
+        });
 
-            const fileInput = document.getElementById('fileUpload');
+        clientButton.addEventListener('click', () => {
+            controlsContainer.style.display = 'block'; // Show controls container for clients
+            fetchFiles(); // Fetch the file list for clients
+        });
+
+        // Fetch and display the list of files in the repository
+        async function fetchFiles() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/`, {
+                    headers: {
+                        'Authorization': `token ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const files = await response.json();
+                    const fileNames = files.map(file => file.name); // Get an array of file names
+
+                    // Update the UI if there are changes in the file list
+                    renderFileList(files); // Update the UI
+                } else {
+                    console.error('Error fetching files:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error fetching files:', error);
+            }
+        }
+
+        // Render the file list to the UI
+        function renderFileList(files) {
+            fileList.innerHTML = ''; // Clear the list
+            files.forEach(file => {
+                const li = document.createElement('li');
+                const fileLink = document.createElement('a');
+
+                // Construct the raw URL for the file
+                fileLink.href = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${file.name}`;
+                fileLink.textContent = file.name;
+                fileLink.target = '_blank'; // Open in a new tab
+
+                li.appendChild(fileLink);
+                fileList.appendChild(li);
+            });
+        }
+
+        uploadButton.addEventListener('click', async () => {
             const file = fileInput.files[0];
 
-            // Check if a file is selected
             if (!file) {
-                alert("Please select a file to upload.");
+                alert('Please select a file to upload.');
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            alert(data.message);
-        };
-
-        document.getElementById('listFiles').onclick = async function() {
-            if (!isConnected) {
-                alert("Please connect to the server first.");
+            // Check file size (for example, limit to 10MB)
+            const maxSizeInMB = 10;
+            if (file.size > maxSizeInMB * 1024 * 1024) {
+                alert(`File size exceeds the limit of ${maxSizeInMB}MB.`);
                 return;
             }
 
-            const response = await fetch('/files');
-            const files = await response.json();
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = files.map(file => `<a href="/files/${file}" target="_blank">${file}</a>`).join('<br>');
-        };
+            const filePath = file.name;
+            const fileExtension = filePath.split('.').pop().toLowerCase();
+
+            // Use FileReader to read the file
+            const reader = new FileReader();
+            reader.onload = async () => {
+                let fileContent = reader.result.split(',')[1]; // Get base64 content
+
+                // Check if the file is a coding language format
+                if (isCodeFile(fileExtension)) {
+                    // Convert to plain text (base64 to UTF-8)
+                    fileContent = btoa(fileContent); // Convert to base64 to UTF-8
+                }
+
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Upload ${filePath}`,
+                            content: fileContent
+                        })
+                    });
+
+                    if (response.ok) {
+                        alert('File uploaded successfully!');
+                        fetchFiles(); // Refresh the file list after upload
+                    } else {
+                        const errorData = await response.json();
+                        handleError(response.status, errorData);
+                    }
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                    alert('An error occurred while uploading the file.');
+                }
+            };
+
+            reader.onerror = () => {
+                console.error('Error reading file:', reader.error);
+                alert('An error occurred while reading the file.');
+            };
+
+            reader.readAsDataURL(file); // Read the file as a data URL
+        });
+
+        // Function to check if the file is a coding language format
+        function isCodeFile(extension) {
+            const codeFileExtensions = ['py', 'js', 'java', 'c', 'cpp', 'rb', 'go', 'html', 'css'];
+            return codeFileExtensions.includes(extension);
+        }
+
+        // Event listener for refresh button
+        refreshButton.addEventListener('click', () => {
+            refreshButton.disabled = true; // Disable the button to prevent multiple clicks
+            refreshSpinner.style.display = 'inline-block'; // Show the spinner
+            fetchFiles().then(() => {
+                refreshButton.disabled = false; // Enable the button again
+                refreshSpinner.style.display = 'none'; // Hide the spinner
+            }); // Fetch the latest files when refresh button is clicked
+        });
+
+        function handleError(status, errorData) {
+            switch (status) {
+                case 401:
+                    alert('Unauthorized: Check your token permissions.');
+                    break;
+                case 404:
+                    alert('Repository not found: Check the repository name and owner.');
+                    break;
+                case 422:
+                    alert('Unprocessable Entity: Check if the file is too large or invalid.');
+                    break;
+                default:
+                    alert('Error uploading file: ' + errorData.message);
+            }
+            console.error('Error details:', errorData);
+        }
     </script>
 </body>
 </html>
