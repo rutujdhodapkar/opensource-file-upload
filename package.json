@@ -1,5 +1,0 @@
-{
-  "scripts": {
-    "build": "pug index.pug -o ./public && babel script.js -o ./public/script.js"
-  }
-}
