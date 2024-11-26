@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Message Board</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message-board {
+            margin-top: 20px;
+        }
+        .message {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .username {
+            font-weight: bold;
+            color: #007BFF;
+        }
+        .content {
+            margin-top: 5px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Live Message Board</h1>
+        
+        <!-- Username Input -->
+        <div id="usernameSection">
+            <label for="username">Enter your username:</label>
+            <input type="text" id="username" placeholder="Your username" required>
+            <button id="saveUsernameButton">Save Username</button>
+        </div>
+
+        <!-- Message Input -->
+        <div id="messageSection" style="display: none;">
+            <label for="message">Enter your message:</label>
+            <textarea id="message" rows="3" placeholder="Type your message here..." required></textarea>
+            <button id="sendButton">Send</button>
+        </div>
+
+        <!-- Message Board -->
+        <div class="message-board" id="messageBoard">
+            <h2>Last 10 Messages:</h2>
+            <!-- Dynamic messages will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // Store messages in localStorage as an array
+        const storageKey = "messages";
+
+        // Check for existing username
+        const username = localStorage.getItem("username");
+        if (username) {
+            document.getElementById("usernameSection").style.display = "none";
+            document.getElementById("messageSection").style.display = "block";
+        }
+
+        // Save username
+        document.getElementById("saveUsernameButton").addEventListener("click", () => {
+            const username = document.getElementById("username").value.trim();
+            if (username) {
+                localStorage.setItem("username", username);
+                document.getElementById("usernameSection").style.display = "none";
+                document.getElementById("messageSection").style.display = "block";
+            } else {
+                alert("Please enter a username.");
+            }
+        });
+
+        // Send a message
+        document.getElementById("sendButton").addEventListener("click", () => {
+            const message = document.getElementById("message").value.trim();
+            const username = localStorage.getItem("username");
+
+            if (message && username) {
+                const messages = JSON.parse(localStorage.getItem(storageKey)) || [];
+                messages.push({ username, message });
+                localStorage.setItem(storageKey, JSON.stringify(messages));
+                document.getElementById("message").value = ""; // Clear message box
+                refreshMessages(); // Refresh message board
+            } else {
+                alert("Message cannot be empty.");
+            }
+        });
+
+        // Refresh messages every second
+        function refreshMessages() {
+            const messages = JSON.parse(localStorage.getItem(storageKey)) || [];
+            const messageBoard = document.getElementById("messageBoard");
+
+            // Clear and re-render messages
+            messageBoard.innerHTML = "<h2>Last 10 Messages:</h2>";
+            const last10Messages = messages.slice(-10); // Get the last 10 messages
+            last10Messages.forEach(msg => {
+                const newMessage = document.createElement("div");
+                newMessage.className = "message";
+                newMessage.innerHTML = `<span class="username">${msg.username}</span><p class="content">${msg.message}</p>`;
+                messageBoard.appendChild(newMessage);
+            });
+        }
+
+        // Initial message refresh
+        refreshMessages();
+
+        // Auto-refresh every second
+        setInterval(refreshMessages, 1000);
+    </script>
+</body>
+</html>
