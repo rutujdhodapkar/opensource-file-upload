@@ -37,4 +37,4 @@ Want to improve this project? Feel free to fork, contribute, and submit a PR!
 - 📧 Email: [rutujdhodapkar@gmail.com](mailto:rutujdhodapkar@gmail.com)  
 - 🔗 Portfolio: [rutujdhodapkar.vercel.app](https://rutujdhodapkar.vercel.app)  
 - 🐦 X (Twitter): [@rutujdhodapkar](https://x.com/rutujdhodapkar)  
-- 💼 LinkedIn: [Rutuj Dhodapkar](https://www.linkedin.com/in/rutujdhodapkar/)  
+- 💼 LinkedIn: [Rutuj Dhodapkar](https://www.linkedin.com/rutujdhodapkar/)  
