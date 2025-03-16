@@ -6,15 +6,18 @@
 
 📌 **How It Works?**  
 1. Visit [OpenFile](https://openfile.netlify.app).  
-2. Click on **"please"** to open the main page.  
-3. Upload your files securely.  
-4. Access them from anywhere, anytime!  
+2. Click on **"please"** to open the main page.
+3. click on button "Admin" to upload files, admin passkey: 15010(to view files click on button "client")
+5. Upload your files securely.  
+6. Access them from anywhere, anytime!  
 
 ## 💡 Features  
 ✅ **Open-source** – Transparent & community-driven.  
 ✅ **Cloud Storage** – Store files remotely via GitHub servers.  
 ✅ **Access from Anywhere** – Global availability.  
 ✅ **Simple & Lightweight** – No unnecessary bloat.  
+✅ **AI Tools** – Quick access Free AI tools.
+✅ **Free chat room** – chat with your connected friends live. 
 
 ## 🚀 How to Use?  
 1. Go to [OpenFile](https://openfile.netlify.app).  
